@@ -73,11 +73,11 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.3"
-  ffmpeg_kit_flutter:
+  ffmpeg_kit_flutter_min_gpl:
     dependency: "direct main"
     description:
-      name: ffmpeg_kit_flutter
-      sha256: "843aae41823ca94a0988d975b4b6cdc6948744b9b7e2707d81a3a9cd237b0100"
+      name: ffmpeg_kit_flutter_min_gpl
+      sha256: "3d7d3a7a6413c9bd7ced7b773aca2fece734e4f8f06e9bffe0fa3b850773dab8"
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "6.0.3"

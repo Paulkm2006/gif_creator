@@ -5,7 +5,7 @@
 import FlutterMacOS
 import Foundation
 
-import ffmpeg_kit_flutter
+import ffmpeg_kit_flutter_min_gpl
 import file_selector_macos
 import gal
 import path_provider_foundation

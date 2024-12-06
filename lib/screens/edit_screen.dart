@@ -303,43 +303,130 @@ class ParametersTab extends StatelessWidget {
                   ],
                 ),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              ExpansionTile(
+                title: const Text('Advanced'), 
                 children: [
-                  const Icon(Icons.settings),
-                  const Text('Algorithm'),
-                  DropdownButton<String>(
-                    value: state.algorithm,
-                    onChanged: (value) {
-                      state.setAlgorithm(value!);
-                    },
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'lanczos',
-                        child: Text('Lanczos'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'bilinear',
-                        child: Text('Bilinear'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'bicubic',
-                        child: Text('Bicubic'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'neighbor',
-                        child: Text('Neighbor'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'area',
-                        child: Text('Area'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const Icon(Icons.settings),
+                      const Text('Algorithm'),
+                      DropdownButton<String>(
+                        value: state.algorithm,
+                        onChanged: (value) {
+                          state.setAlgorithm(value!);
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'lanczos',
+                            child: Text('Lanczos'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'bilinear',
+                            child: Text('Bilinear'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'bicubic',
+                            child: Text('Bicubic'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'neighbor',
+                            child: Text('Neighbor'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'area',
+                            child: Text('Area'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const Icon(Icons.palette),
+                      const Text('Palette colors'),
+                      Slider.adaptive(
+                        value: state.maxColor,
+                        onChanged: (value) {
+                          state.setMaxColor(value);
+                        },
+                        min: 32.0,
+                        max: 256.0,
+                        divisions: 7,
+                        label: state.maxColor.toStringAsFixed(0),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const Icon(Icons.colorize),
+                      const Text('Sampling'),
+                      DropdownButton<String>(
+                        value: state.samplingMethod,
+                        onChanged: (value) {
+                          state.setSamplingMethod(value!);
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'full',
+                            child: Text('Full'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'diff',
+                            child: Text('Diff'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'single',
+                            child: Text('Single'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        const Icon(Icons.equalizer),
+                        const Text('Dither'),
+                        DropdownButton<String>(
+                          value: state.dither,
+                          onChanged: (value) {
+                            state.setDither(value!);
+                          },
+                          items: [
+                            DropdownMenuItem(
+                              value: 'sierra2_4a',
+                              child: const Text('sierra2_4a'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'sierra3',
+                              child: const Text('sierra3'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'bayer',
+                              child: const Text('bayer'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'floyd_steinberg',
+                              child: const Text('floyd_steinberg'),
+                            ),
+                          ],
+                        ),
+                        const Text('Use rectangle'),
+                        Checkbox(
+                          value: state.useRectangle,
+                          onChanged: (value) {
+                            state.setUseRectangle(value!);
+                          },
+                        ),
+                      ],
+                    )
+                    ],
+                  )
                 ],
-              )
-            ],
-          ),
+          )
         );
     });
   }

@@ -25,9 +25,29 @@ class VideoState extends ChangeNotifier {
   int loopTime = 1; // Default loop time in seconds
 
   String algorithm = 'lanczos';
+  double maxColor = 256.0;
+  String samplingMethod = 'full';
+  String dither = 'sierra2_4a';
+  bool useRectangle = false;
 
   bool generating = false;
 
+  void setDither(String value) {
+    dither = value;
+    notifyListeners();
+  }
+  void setUseRectangle(bool value) {
+    useRectangle = value;
+    notifyListeners();
+  }
+  void setMaxColor(double value) {
+    maxColor = value;
+    notifyListeners();
+  }
+  void setSamplingMethod(String value) {
+    samplingMethod = value;
+    notifyListeners();
+  }
 
   void setAlgorithm(String value) {
     algorithm = value;
@@ -127,6 +147,10 @@ class VideoState extends ChangeNotifier {
       loopTime: loopTime,
       algorithm: algorithm,
       trimRange: trimRange,
+      samplingMethod: samplingMethod,
+      dither: dither,
+      maxColor: maxColor,
+      useRectangle: useRectangle,
     );
     resultInfo = await getMediaInfo(outputPath);
     setGif(XFile(outputPath));

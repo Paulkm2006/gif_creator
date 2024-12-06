@@ -1,4 +1,4 @@
-import 'package:ffmpeg_kit_flutter/ffprobe_kit.dart';
+import 'package:ffmpeg_kit_flutter_min_gpl/ffprobe_kit.dart';
 
 
 final regexFR = RegExp(r'"r_frame_rate": "(\d*)\/1"');
