@@ -10,7 +10,6 @@ jobs:
       uses: subosito/flutter-action@v2
       with:
         channel: stable
-        flutter-version-file: pubspec.yaml
     - run: flutter pub get
     - run: flutter build apk --target-platform android-arm64 --split-debug-info=v0.0.1
     - name: Release
