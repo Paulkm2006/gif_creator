@@ -1,5 +1,6 @@
 import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit_config.dart';
+import 'package:ffmpeg_kit_flutter_min_gpl/return_code.dart';
 import 'package:flutter/material.dart';
 
 Future<void> generateGifFromVideo({
@@ -14,6 +15,8 @@ Future<void> generateGifFromVideo({
   required String dither,
   required double maxColor,
   required bool useRectangle,
+  required Offset cropLU,
+  required Offset cropRD,
   RangeValues? trimRange,
 }) async {
   var path = videoPath;
@@ -30,9 +33,23 @@ Future<void> generateGifFromVideo({
 
   String ditherOption = '[s0]palettegen=max_colors=${maxColor.toStringAsFixed(0)}[p];[s1][p]paletteuse=dither=$dither:diff_mode=${useRectangle?'rectangle':'none'}';
 
+  String cropOption = 'crop=${(cropRD.dx - cropLU.dx).toStringAsFixed(0)}:${(cropRD.dy - cropLU.dy).toStringAsFixed(0)}:${(cropLU.dx).toStringAsFixed(0)}:${(cropLU.dy).toStringAsFixed(0)}';
+
   String command = '''
-  $trimOption -i "$path" -vf "fps=$fps,scale=iw*$scale:ih*$scale:flags=$algorithm,split[s0][s1];$ditherOption" $loopOption "$outputPath"
+  $trimOption -i "$path" -vf "$cropOption,fps=$fps,scale=iw*$scale:ih*$scale:flags=$algorithm,split[s0][s1];$ditherOption" $loopOption "$outputPath"
   ''';
 
-  await FFmpegKit.execute(command.trim());
+  await FFmpegKit.execute(command.trim()).then((session) async {
+    final returnCode = await session.getReturnCode();
+
+    if (ReturnCode.isSuccess(returnCode)) {
+      return null;
+    } else if (ReturnCode.isCancel(returnCode)) {
+      return null;
+    } else {
+      final state = await session.getState();
+      final error = await session.getOutput();
+      throw Exception('Error generating gif: $state\n$error');
+    }
+  });
 }

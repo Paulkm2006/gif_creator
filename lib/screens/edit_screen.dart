@@ -37,9 +37,6 @@ class EditScreen extends StatelessWidget {
                                 ),
                                 onPressed: () {
                                   state.revertEditedVideo();
-                                  state.setScale(1.0);
-                                  state.setFps(10.0);
-                                  state.setLoopInf(true);
                                 },
                                 icon: const Icon(Icons.undo),
                                 label: const Text('Revert'),
@@ -93,6 +90,10 @@ class Editor extends StatefulWidget {
 
 class EditorState extends State<Editor> {
   double? fps; // Existing line
+  // Add a GlobalKey for the Stack
+  final GlobalKey _stackKey = GlobalKey();
+  // Update the button size to match the actual size (30)
+  final double buttonSize = 30.0; // Size of CropButton
 
   @override
   void initState() {
@@ -101,20 +102,12 @@ class EditorState extends State<Editor> {
     if (videoState.controller == null) {
       videoState.initializeController(widget.video.path);
     }
-    // Initialize trim range if not set
-    if (videoState.trimRange == null && videoState.controller != null) {
-      videoState.trimRange = RangeValues(
-        0.0,
-        videoState.controller!.value.duration.inMilliseconds.toDouble(),
-      );
-    }
     // Add listener to handle position updates
     videoState.controller!.addListener(_positionListener);
   }
 
   @override
   void dispose() {
-    // Remove listener to prevent memory leaks
     super.dispose();
   }
 
@@ -122,6 +115,7 @@ class EditorState extends State<Editor> {
     if (!mounted) return;
     final videoState = Provider.of<VideoState>(context, listen: false);
     final position = videoState.controller!.value.position;
+    if (videoState.trimRange == null) return;
     if (position > Duration(milliseconds: videoState.trimRange!.end.toInt())) {
       videoState.controller!.seekTo(Duration(milliseconds: videoState.trimRange!.start.toInt()));
       if (videoState.controller!.value.isPlaying) {
@@ -140,13 +134,81 @@ class EditorState extends State<Editor> {
         return Column(
           children: [
             SizedBox(
-              width: 300,
-              height: 300,
+              width: 400,
+              height: 400,
               child: Scaffold(
                 body: Center(
                   child: AspectRatio(
                     aspectRatio: state.controller!.value.aspectRatio,
-                    child: VideoPlayer(state.controller!),
+                    child: Stack(
+                      key: _stackKey, // Assign the GlobalKey to the Stack
+                      children: [
+                        VideoPlayer(state.controller!),
+                        Positioned(
+                          left: state.cropLU.dx,
+                          top: state.cropLU.dy,
+                          child: SizedBox(
+                            width: state.cropRD.dx - state.cropLU.dx,
+                            height: state.cropRD.dy - state.cropLU.dy,
+                            child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.red, width: 2),
+                                  color: Colors.black.withOpacity(0.2),
+                                ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          left: state.cropLU.dx - buttonSize / 2,
+                          top: state.cropLU.dy - buttonSize / 2,
+                          child : Draggable(
+                            feedback: CropButton(),
+                            childWhenDragging: Container(),
+                            onDragStarted: () {
+                              state.controller!.pause();
+                            },
+                            onDragUpdate: (details) {
+                              final RenderBox stackBox = _stackKey
+                                      .currentContext!
+                                      .findRenderObject() as RenderBox;
+                              final localOffset = stackBox.globalToLocal(details.globalPosition);
+                              
+                              double newX = localOffset.dx.clamp(
+                                      0.0, state.cropRD.dx);
+                              double newY = localOffset.dy.clamp( 
+                                      0.0, state.cropRD.dy);
+                              
+                              state.setPosLU(Offset(newX, newY));
+                            },
+                            child: CropButton(),
+                          ),
+                        ),
+                        Positioned(
+                          left: state.cropRD.dx - buttonSize / 2,
+                          top: state.cropRD.dy - buttonSize / 2,
+                          child : Draggable(
+                            feedback: CropButton(),
+                            childWhenDragging: Container(),
+                            onDragStarted: () {
+                              state.controller!.pause();
+                            },
+                            onDragUpdate: (details) {
+                              final RenderBox stackBox = _stackKey.currentContext!.findRenderObject() as RenderBox;
+                              final stackSize = stackBox.size;
+                              final localOffset = stackBox.globalToLocal(details.globalPosition);
+                              
+                              double newX = localOffset.dx.clamp(
+                                      state.cropLU.dx, stackSize.width);
+                              double newY = localOffset.dy.clamp(
+                                      state.cropLU.dy, stackSize.height);
+                              
+                              state.setPosRD(Offset(newX, newY));
+                            },
+                            child: CropButton(),
+                          ),
+                        ),
+                      ]
+                    )
                   ),
                 ),
               ),
@@ -218,6 +280,25 @@ class EditorState extends State<Editor> {
           ],
         );
       },
+    );
+  }
+}
+
+class CropButton extends StatelessWidget {
+  const CropButton({
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30, 
+      width: 30,
+      child: FloatingActionButton(
+        onPressed: () {}, 
+        backgroundColor: Colors.green.withOpacity(0.8), 
+        child: Icon(Icons.add, size: 10), // Adjust icon size if needed
+      ),
     );
   }
 }

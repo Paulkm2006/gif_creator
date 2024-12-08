@@ -16,21 +16,34 @@ class VideoState extends ChangeNotifier {
   
   double maxFps = 30.0;
   double fps = 10.0; 
-  double scale = 1.0;
+  double scale = 0.25;
 
   List<String?> mediaInfo = ['0', '0', '0', '0'];
   List<String?> resultInfo = ['0', '0', '0', '0'];
 
-  bool loopInfinite = false; // Add this line
-  int loopTime = 1; // Default loop time in seconds
+  bool loopInfinite = true;
+  int loopTime = 0;
 
   String algorithm = 'lanczos';
-  double maxColor = 256.0;
+  double maxColor = 64.0;
   String samplingMethod = 'full';
   String dither = 'sierra2_4a';
   bool useRectangle = false;
 
   bool generating = false;
+
+  Offset cropLU = Offset(0.0, 0.0);
+  Offset cropRD = Offset(0.0, 0.0);
+
+  void setPosLU(Offset lu) {
+    cropLU = lu;
+    notifyListeners();
+  }
+
+  void setPosRD(Offset rd) {
+    cropRD = rd;
+    notifyListeners();
+  }
 
   void setDither(String value) {
     dither = value;
@@ -110,9 +123,27 @@ class VideoState extends ChangeNotifier {
 
 
   void revertEditedVideo() {
-    if (!_mounted) return;
-    controller?.dispose();
-    initializeController(_video!.path);
+    final videoSize = controller!.value.size;
+    cropLU = Offset(0.0, 0.0);
+    if (videoSize.width > videoSize.height) {
+      cropRD = Offset(400, videoSize.height / videoSize.width * 400);
+    } else {
+      cropRD = Offset(videoSize.width / videoSize.height * 400, 400);
+    }
+    updateTrimRange(
+        RangeValues(0.0, controller!.value.duration.inMilliseconds.toDouble()));
+    fps = 10.0;
+    scale = 0.25;
+    loopInfinite = true;
+    loopTime = 0;
+
+    algorithm = 'lanczos';
+    maxColor = 64.0;
+    samplingMethod = 'full';
+    dither = 'sierra2_4a';
+    useRectangle = false;
+
+
     notifyListeners();
   }
 
@@ -120,6 +151,13 @@ class VideoState extends ChangeNotifier {
   Future<void> initializeController(String path) async {
     controller = VideoPlayerController.file(File(path))
       ..initialize().then((_) {
+        final videoSize = controller!.value.size;
+        cropLU = Offset(0.0, 0.0);
+        if (videoSize.width > videoSize.height) {
+          cropRD = Offset(400, videoSize.height / videoSize.width * 400);
+        } else {
+          cropRD = Offset(videoSize.width / videoSize.height * 400, 400);
+        }
         updateTrimRange(RangeValues(
             0.0, controller!.value.duration.inMilliseconds.toDouble()));
         notifyListeners();
@@ -137,6 +175,15 @@ class VideoState extends ChangeNotifier {
     if (_video == null) return;
     String videoPath = _video!.path;
     String outputPath = '${(await getApplicationDocumentsDirectory()).path}/output_${DateTime.now().millisecondsSinceEpoch}.gif';
+    final videoSize = controller!.value.size;
+    Offset RD, LU;
+    if (videoSize.width > videoSize.height) {
+      RD = Offset(cropRD.dx / 400 * videoSize.width, cropRD.dy / 400 * videoSize.width);
+      LU = Offset(cropLU.dx / 400 * videoSize.width, cropLU.dy / 400 * videoSize.width);
+    } else {
+      RD = Offset(cropRD.dx / 400 * videoSize.height, cropRD.dy / 400 * videoSize.height);
+      LU = Offset(cropLU.dx / 400 * videoSize.height , cropLU.dy / 400 * videoSize.height);
+    }
 
     await generateGifFromVideo(
       videoPath: videoPath,
@@ -151,6 +198,8 @@ class VideoState extends ChangeNotifier {
       dither: dither,
       maxColor: maxColor,
       useRectangle: useRectangle,
+      cropLU: LU,
+      cropRD: RD,
     );
     resultInfo = await getMediaInfo(outputPath);
     setGif(XFile(outputPath));
