@@ -3,7 +3,12 @@ import 'package:ffmpeg_kit_flutter_min_gpl/ffmpeg_kit_config.dart';
 import 'package:ffmpeg_kit_flutter_min_gpl/return_code.dart';
 import 'package:flutter/material.dart';
 
-Future<void> generateGifFromVideo({
+
+void cancelGifGeneration() {
+  FFmpegKit.cancel();
+}
+
+Future<String?> generateGifFromVideo({
   required String videoPath,
   required String outputPath,
   required double fps,
@@ -17,6 +22,7 @@ Future<void> generateGifFromVideo({
   required bool useRectangle,
   required Offset cropLU,
   required Offset cropRD,
+  required int rotation,
   RangeValues? trimRange,
 }) async {
   var path = videoPath;
@@ -31,25 +37,38 @@ Future<void> generateGifFromVideo({
     trimOption = '-ss $start -t $duration';
   }
 
+  String rotationOptionFront = '';
+  String rotationOptionBack = '';
+
+  if (rotation == 90) {
+    rotationOptionFront = 'transpose=2,';
+    rotationOptionBack = ',transpose=1';
+  } else if (rotation == 180) {
+    rotationOptionFront = 'hflip,vflip,';
+  } else if (rotation == 270) {
+    rotationOptionFront = 'transpose=1,';
+    rotationOptionBack = ',transpose=2';
+  }
+
   String ditherOption = '[s0]palettegen=max_colors=${maxColor.toStringAsFixed(0)}[p];[s1][p]paletteuse=dither=$dither:diff_mode=${useRectangle?'rectangle':'none'}';
 
-  String cropOption = 'crop=${(cropRD.dx - cropLU.dx).toStringAsFixed(0)}:${(cropRD.dy - cropLU.dy).toStringAsFixed(0)}:${(cropLU.dx).toStringAsFixed(0)}:${(cropLU.dy).toStringAsFixed(0)}';
+  String cropOption = '${rotationOptionFront}crop=${(cropRD.dx - cropLU.dx).toStringAsFixed(0)}:${(cropRD.dy - cropLU.dy).toStringAsFixed(0)}:${(cropLU.dx).toStringAsFixed(0)}:${(cropLU.dy).toStringAsFixed(0)}$rotationOptionBack';
 
   String command = '''
   $trimOption -i "$path" -vf "$cropOption,fps=$fps,scale=iw*$scale:ih*$scale:flags=$algorithm,split[s0][s1];$ditherOption" $loopOption "$outputPath"
   ''';
 
+  String? err = '';
   await FFmpegKit.execute(command.trim()).then((session) async {
     final returnCode = await session.getReturnCode();
 
     if (ReturnCode.isSuccess(returnCode)) {
-      return null;
+      err = null;
     } else if (ReturnCode.isCancel(returnCode)) {
-      return null;
+      err = null;
     } else {
-      final state = await session.getState();
-      final error = await session.getOutput();
-      throw Exception('Error generating gif: $state\n$error');
+      err = await session.getOutput();
     }
   });
+  return err;
 }

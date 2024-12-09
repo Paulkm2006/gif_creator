@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:gif_creator/providers/video_state.dart';
 import 'package:video_player/video_player.dart';
+import 'dart:math' as math;
 
 
 class EditScreen extends StatelessWidget {
@@ -93,7 +94,7 @@ class EditorState extends State<Editor> {
   // Add a GlobalKey for the Stack
   final GlobalKey _stackKey = GlobalKey();
   // Update the button size to match the actual size (30)
-  final double buttonSize = 30.0; // Size of CropButton
+  final double buttonSize = 40.0; // Size of CropButton
 
   @override
   void initState() {
@@ -133,17 +134,38 @@ class EditorState extends State<Editor> {
         }
         return Column(
           children: [
+            if (state.controller!.value.rotationCorrection != 0)
+              Container(
+                color: Colors.yellow,
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.rotate_right),
+                        SizedBox(width: 8),
+                        Text('Video has been rotated'),
+                      ],
+                    ),
+                    Text("Don't worry, output will be correct"),
+                  ],
+                ),
+              ),
             SizedBox(
-              width: 400,
-              height: 400,
+              width: 300,
+              height: 300,
               child: Scaffold(
                 body: Center(
                   child: AspectRatio(
                     aspectRatio: state.controller!.value.aspectRatio,
                     child: Stack(
-                      key: _stackKey, // Assign the GlobalKey to the Stack
+                      key: _stackKey,
                       children: [
-                        VideoPlayer(state.controller!),
+                        Transform.rotate(
+                          angle: -state.controller!.value.rotationCorrection.toDouble() * math.pi /180,
+                          child: VideoPlayer(state.controller!),
+                        ),
                         Positioned(
                           left: state.cropLU.dx,
                           top: state.cropLU.dy,
@@ -174,9 +196,9 @@ class EditorState extends State<Editor> {
                               final localOffset = stackBox.globalToLocal(details.globalPosition);
                               
                               double newX = localOffset.dx.clamp(
-                                      0.0, state.cropRD.dx);
+                                      -50.0, state.cropRD.dx);
                               double newY = localOffset.dy.clamp( 
-                                      0.0, state.cropRD.dy);
+                                      -50.0, state.cropRD.dy);
                               
                               state.setPosLU(Offset(newX, newY));
                             },
@@ -292,8 +314,8 @@ class CropButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 30, 
-      width: 30,
+      height: 40, 
+      width: 40,
       child: FloatingActionButton(
         onPressed: () {}, 
         backgroundColor: Colors.green.withOpacity(0.8), 

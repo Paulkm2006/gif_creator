@@ -31,6 +31,8 @@ class VideoState extends ChangeNotifier {
   bool useRectangle = false;
 
   bool generating = false;
+  bool generationError = false;
+  String generationErrorMessage = '';
 
   Offset cropLU = Offset(0.0, 0.0);
   Offset cropRD = Offset(0.0, 0.0);
@@ -117,6 +119,9 @@ class VideoState extends ChangeNotifier {
 
   void setGif(XFile? file) {
     if (!_mounted) return;
+    if (file==null){
+      File(_gif!.path).delete();
+    }
     _gif = file;
     notifyListeners();
   }
@@ -126,9 +131,9 @@ class VideoState extends ChangeNotifier {
     final videoSize = controller!.value.size;
     cropLU = Offset(0.0, 0.0);
     if (videoSize.width > videoSize.height) {
-      cropRD = Offset(400, videoSize.height / videoSize.width * 400);
+      cropRD = Offset(300, videoSize.height / videoSize.width * 300);
     } else {
-      cropRD = Offset(videoSize.width / videoSize.height * 400, 400);
+      cropRD = Offset(videoSize.width / videoSize.height * 300, 300);
     }
     updateTrimRange(
         RangeValues(0.0, controller!.value.duration.inMilliseconds.toDouble()));
@@ -154,9 +159,9 @@ class VideoState extends ChangeNotifier {
         final videoSize = controller!.value.size;
         cropLU = Offset(0.0, 0.0);
         if (videoSize.width > videoSize.height) {
-          cropRD = Offset(400, videoSize.height / videoSize.width * 400);
+          cropRD = Offset(300, videoSize.height / videoSize.width * 300);
         } else {
-          cropRD = Offset(videoSize.width / videoSize.height * 400, 400);
+          cropRD = Offset(videoSize.width / videoSize.height * 300, 300);
         }
         updateTrimRange(RangeValues(
             0.0, controller!.value.duration.inMilliseconds.toDouble()));
@@ -170,22 +175,32 @@ class VideoState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void cancelGeneration() {
+    cancelGifGeneration();
+    generating = false;
+    generationError = true;
+    generationErrorMessage = 'Cancelled';
+    notifyListeners();
+  }
+
   Future<void> generateGif() async {
     generating = true;
+    generationError = false;
     if (_video == null) return;
     String videoPath = _video!.path;
     String outputPath = '${(await getApplicationDocumentsDirectory()).path}/output_${DateTime.now().millisecondsSinceEpoch}.gif';
     final videoSize = controller!.value.size;
-    Offset RD, LU;
+    final rotation = controller!.value.rotationCorrection;
+    Offset realRD, realLU;
     if (videoSize.width > videoSize.height) {
-      RD = Offset(cropRD.dx / 400 * videoSize.width, cropRD.dy / 400 * videoSize.width);
-      LU = Offset(cropLU.dx / 400 * videoSize.width, cropLU.dy / 400 * videoSize.width);
+      realRD = Offset(cropRD.dx / 300 * videoSize.width, cropRD.dy / 300 * videoSize.width);
+      realLU = Offset(cropLU.dx / 300 * videoSize.width, cropLU.dy / 300 * videoSize.width);
     } else {
-      RD = Offset(cropRD.dx / 400 * videoSize.height, cropRD.dy / 400 * videoSize.height);
-      LU = Offset(cropLU.dx / 400 * videoSize.height , cropLU.dy / 400 * videoSize.height);
+      realRD = Offset(cropRD.dx / 300 * videoSize.height, cropRD.dy / 300 * videoSize.height);
+      realLU = Offset(cropLU.dx / 300 * videoSize.height , cropLU.dy / 300 * videoSize.height);
     }
 
-    await generateGifFromVideo(
+    String? res = await generateGifFromVideo(
       videoPath: videoPath,
       outputPath: outputPath,
       fps: fps,
@@ -198,9 +213,17 @@ class VideoState extends ChangeNotifier {
       dither: dither,
       maxColor: maxColor,
       useRectangle: useRectangle,
-      cropLU: LU,
-      cropRD: RD,
+      rotation: rotation,
+      cropLU: realLU,
+      cropRD: realRD,
     );
+    if (res != null) {
+      generationError = true;
+      generationErrorMessage = res;
+      generating = false;
+      notifyListeners();
+      return;
+    }
     resultInfo = await getMediaInfo(outputPath);
     setGif(XFile(outputPath));
     generating = false;
